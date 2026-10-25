@@ -1,0 +1,17 @@
+[Unit]
+Description=OpenPak WFC gpcm
+After=openpak-postgres.service
+
+[Container]
+ContainerName=openpak-wfc-gpcm
+Image=ghcr.io/openpak/wfc-gpcm:latest
+Network=openpak.network
+EnvironmentFile=%h/openpak/deploy/wfc-full/wfc-gpcm.env
+Volume=%h/openpak/deploy/wfc-split/token.key:/keys/wfc-token.key:ro,U
+PublishPort=0.0.0.0:29900:29900/tcp
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target
