@@ -36,7 +36,7 @@ Build, test and environment detail is in [Deploy](docs/deploy.md).
 
 - [Protocol](docs/protocol.md)
 - [Deploy](docs/deploy.md)
-- [Notes](docs/notes.md)
+- [Provenance](docs/provenance.md)
 
 ## Licence
 
