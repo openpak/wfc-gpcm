@@ -4,10 +4,12 @@ import (
 	"encoding/gob"
 	"openpak/wfc-common/common"
 	"openpak/wfc-common/database"
+	"openpak/wfc-common/httplog"
 	"openpak/wfc-common/logging"
 	qr2 "openpak/wfc-common/qr2client"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/linkdata/deadlock"
 	"github.com/logrusorgru/aurora/v3"
@@ -40,6 +42,8 @@ type GameSpySession struct {
 	DeviceId          uint32
 	HostPlatform      string
 	UnitCode          byte
+
+	replyErrors int // replyError calls so far; a command that raised one logs as "error"
 
 	StatusSet      bool
 	Status         string
@@ -255,6 +259,7 @@ func HandlePacket(index uint64, data []byte) {
 	commands = session.ignoreCommand("logout", commands)
 
 	if len(commands) != 0 && !session.LoggedIn {
+		httplog.Command(ServerName, commands[0].Command, "denied", time.Now())
 		logging.Error(session.ModuleName, "Attempt to run command before login:", aurora.Cyan(commands[0]))
 		session.replyError(ErrNotLoggedIn)
 		return
@@ -270,6 +275,7 @@ func HandlePacket(index uint64, data []byte) {
 	commands = session.handleCommand("getprofile", commands, session.getProfile)
 
 	for _, command := range commands {
+		httplog.Command(ServerName, command.Command, "unknown", time.Now())
 		logging.Error(session.ModuleName, "Unknown command:", aurora.Cyan(command))
 	}
 
@@ -306,7 +312,9 @@ func (g *GameSpySession) handleCommand(name string, commands []common.GameSpyCom
 		}
 
 		logging.Info(g.ModuleName, "Command:", aurora.Yellow(command.Command))
+		start, errs := time.Now(), g.replyErrors
 		handler(command)
+		httplog.Command(ServerName, command.Command, cmdResult(g.replyErrors != errs), start)
 	}
 
 	return unhandled
@@ -362,4 +370,11 @@ func loadState() error {
 	}
 
 	return nil
+}
+
+func cmdResult(failed bool) string {
+	if failed {
+		return "error"
+	}
+	return "ok"
 }

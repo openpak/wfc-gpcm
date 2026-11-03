@@ -123,6 +123,7 @@ var WWFCMsgPayloadInvalid = gperror.WWFCMsgPayloadInvalid
 var WWFCMsgInvalidELO = gperror.WWFCMsgInvalidELO
 
 func (g *GameSpySession) replyError(gpErr GPError) {
+	g.replyErrors++
 	logging.Error(g.ModuleName, "Reply error:", gpErr.ErrorString)
 	if !g.LoginInfoSet {
 		msg := gpErr.GetMessage()

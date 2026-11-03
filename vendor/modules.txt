@@ -58,6 +58,7 @@ openpak/wfc-common/common
 openpak/wfc-common/database
 openpak/wfc-common/filter
 openpak/wfc-common/gperror
+openpak/wfc-common/httplog
 openpak/wfc-common/logging
 openpak/wfc-common/qr2client
 openpak/wfc-common/service
