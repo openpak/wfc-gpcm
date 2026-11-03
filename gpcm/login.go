@@ -372,7 +372,7 @@ func (g *GameSpySession) login(command common.GameSpyCommand) {
 
 	// Notify QR2 of the login
 	publish(g)
-	if err := qr2.Login(g.User.ProfileId, g.GameCode, g.InGameName, g.ConsoleFriendCode, g.User.GsbrCode[:4], g.RemoteAddr, g.NeedsExploit, g.DeviceAuthenticated, g.User.Restricted, g.Generation, g.PublishedRevision); err != nil {
+	if err := qr2.Login(g.User.ProfileId, g.GameCode, g.InGameName, g.ConsoleFriendCode, g.User.GsbrCode[:4], g.RemoteAddr, g.NeedsExploit, g.DeviceAuthenticated, g.User.Restricted, g.Generation, g.PublishedRevision, g.User.UserId); err != nil {
 		unpublish(g.User.ProfileId, g.Generation)
 		mutex.Lock()
 		if sessions[g.User.ProfileId] == g {

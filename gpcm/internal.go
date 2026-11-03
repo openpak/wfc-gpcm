@@ -12,7 +12,7 @@ var published = map[uint32]wfcapi.Session{}
 
 func publish(g *GameSpySession) {
 	g.PublishedRevision = time.Now().UnixNano()
-	v := wfcapi.Session{Login: wfcapi.Login{ProfileID: g.User.ProfileId, Generation: g.Generation, Revision: g.PublishedRevision, GameCode: g.GameCode, InGameName: g.InGameName, ConsoleFriendCode: g.ConsoleFriendCode, FriendKeyGame: g.User.GsbrCode[:4], GPPublicIP: g.RemoteAddr, NeedsExploit: g.NeedsExploit, DeviceAuthenticated: g.DeviceAuthenticated, Restricted: g.User.Restricted}, SessionKey: g.SessionKey, GameName: g.GameName, UniqueNick: "000000000" + g.User.GsbrCode[:4] + "0000000"}
+	v := wfcapi.Session{Login: wfcapi.Login{ProfileID: g.User.ProfileId, UserID: g.User.UserId, Generation: g.Generation, Revision: g.PublishedRevision, GameCode: g.GameCode, InGameName: g.InGameName, ConsoleFriendCode: g.ConsoleFriendCode, FriendKeyGame: g.User.GsbrCode[:4], GPPublicIP: g.RemoteAddr, NeedsExploit: g.NeedsExploit, DeviceAuthenticated: g.DeviceAuthenticated, Restricted: g.User.Restricted}, SessionKey: g.SessionKey, GameName: g.GameName, UniqueNick: "000000000" + g.User.GsbrCode[:4] + "0000000"}
 	publishedMu.Lock()
 	published[g.User.ProfileId] = v
 	publishedMu.Unlock()
