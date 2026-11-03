@@ -74,7 +74,7 @@ func (g *GameSpySession) bestieMessage(command common.GameSpyCommand) {
 		resvWaitMsg = resvWaitVer90
 		msgDataIndex = 10
 	} else {
-		logging.Error(g.ModuleName, "Invalid message prefix; message:", msg)
+		logging.Error(g.ModuleName, "Invalid message prefix; message:", len(msg), "bytes")
 		g.replyError(ErrMessage)
 		return
 	}
@@ -87,7 +87,7 @@ func (g *GameSpySession) bestieMessage(command common.GameSpyCommand) {
 	}
 
 	if len(msg) < msgDataIndex+1 {
-		logging.Error(g.ModuleName, "Invalid message length; message:", msg)
+		logging.Error(g.ModuleName, "Invalid message length; message:", len(msg), "bytes")
 		g.replyError(ErrMessage)
 		return
 	}
@@ -106,7 +106,7 @@ func (g *GameSpySession) bestieMessage(command common.GameSpyCommand) {
 		for _, stringValue := range strings.Split(msg[msgDataIndex:], "/") {
 			intValue, err := strconv.ParseUint(stringValue, 10, 32)
 			if err != nil {
-				logging.Error(g.ModuleName, "Invalid message value; message:", msg)
+				logging.Error(g.ModuleName, "Invalid message value; message:", len(msg), "bytes")
 				g.replyError(ErrMessage)
 				return
 			}
@@ -122,7 +122,7 @@ func (g *GameSpySession) bestieMessage(command common.GameSpyCommand) {
 		for _, stringValue := range strings.Split(msg[msgDataIndex:], "/") {
 			byteValue, err := hex.DecodeString(stringValue)
 			if err != nil || len(byteValue) != 4 {
-				logging.Error(g.ModuleName, "Invalid message value; message:", msg)
+				logging.Error(g.ModuleName, "Invalid message value; message:", len(msg), "bytes")
 				g.replyError(ErrMessage)
 				return
 			}
@@ -137,19 +137,19 @@ func (g *GameSpySession) bestieMessage(command common.GameSpyCommand) {
 
 		msgData, err = common.Base64DwcEncoding.DecodeString(msg[msgDataIndex:])
 		if err != nil {
-			logging.Error(g.ModuleName, "Invalid message base64 data; message:", msg)
+			logging.Error(g.ModuleName, "Invalid message base64 data; message:", len(msg), "bytes")
 			g.replyError(ErrMessage)
 			return
 		}
 
 	default:
-		logging.Error(g.ModuleName, "Invalid message version; message:", msg)
+		logging.Error(g.ModuleName, "Invalid message version; message:", len(msg), "bytes")
 		g.replyError(ErrMessage)
 		return
 	}
 
 	if len(msgData) > 0x200 || (len(msgData)&3) != 0 {
-		logging.Error(g.ModuleName, "Invalid length message data; message:", msg)
+		logging.Error(g.ModuleName, "Invalid length message data; message:", len(msg), "bytes")
 		g.replyError(ErrMessage)
 		return
 	}
@@ -157,7 +157,7 @@ func (g *GameSpySession) bestieMessage(command common.GameSpyCommand) {
 	msgMatchData, ok := common.DecodeMatchCommand(cmd, msgData, version)
 	common.LogMatchCommand(g.ModuleName, strconv.FormatInt(int64(toProfileId), 10), cmd, msgMatchData)
 	if !ok {
-		logging.Error(g.ModuleName, "Invalid match command data; message:", msg)
+		logging.Error(g.ModuleName, "Invalid match command data; message:", len(msg), "bytes")
 		g.replyError(ErrMessage)
 		return
 	}
@@ -219,7 +219,7 @@ func (g *GameSpySession) bestieMessage(command common.GameSpyCommand) {
 
 	newMsg, ok := common.EncodeMatchCommand(cmd, msgMatchData)
 	if !ok || len(newMsg) > 0x200 || (len(newMsg)%4) != 0 {
-		logging.Error(g.ModuleName, "Failed to encode match command; message:", msg)
+		logging.Error(g.ModuleName, "Failed to encode match command; message:", len(msg), "bytes")
 		g.replyError(ErrMessage)
 		return
 	}

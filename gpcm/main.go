@@ -229,7 +229,7 @@ func HandlePacket(index uint64, data []byte) {
 	for i := 0; i < length; i++ {
 		if session.ReadBuffer[i] == 0 {
 			logging.Error(session.ModuleName, "Null byte in packet")
-			logging.Error(session.ModuleName, "Raw data:", string(data))
+			logging.Error(session.ModuleName, "Raw data:", len(data), "bytes")
 			session.replyError(ErrParse)
 			session.ReadBuffer = []byte{}
 			return
@@ -244,7 +244,7 @@ func HandlePacket(index uint64, data []byte) {
 	commands, err := common.ParseGameSpyMessage(message)
 	if err != nil {
 		logging.Error(session.ModuleName, "Error parsing message:", err.Error())
-		logging.Error(session.ModuleName, "Raw data:", message)
+		logging.Error(session.ModuleName, "Raw data:", len(message), "bytes")
 		session.replyError(ErrParse)
 		return
 	}

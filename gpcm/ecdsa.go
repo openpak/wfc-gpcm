@@ -234,7 +234,7 @@ func printHex(data []byte) {
 		}
 		logMsg += fmt.Sprintf("%02x ", data[i])
 	}
-	logging.Info("GPCM", "Data:", logMsg)
+	logging.Info("GPCM", "Data:", len(data), "bytes")
 }
 
 func verifyECDSA(publicKey []byte, signature []byte, hash []byte) bool {
