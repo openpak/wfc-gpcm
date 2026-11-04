@@ -401,9 +401,14 @@ func (g *GameSpySession) login(command common.GameSpyCommand) {
 	}
 
 	if g.GameName == "mariokartwii" {
-		if motd, err := GetMessageOfTheDay(); err != nil {
+		motd, err := GetMessageOfTheDay()
+		if err != nil {
 			logging.Info(g.ModuleName, err)
-		} else {
+			motd = ""
+		}
+		// An unlinked console is shown a code to enter at openpak.org/link.
+		motd = MessageWithPairing(motd, g.pairingCode())
+		if motd != "" {
 			motdUTF16 := utf16.Encode([]rune(motd))
 			motdByteArray := common.UTF16ToByteArray(motdUTF16)
 			otherValues["wl:motd"] = common.Base64DwcEncoding.EncodeToString(motdByteArray)

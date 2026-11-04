@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.2.0 - 2026-11-04
+
+- Mario Kart Wii: an unlinked console is shown a pairing code in the Wi-Fi menu message of the day (`wl:motd`), to enter at openpak.org/link. Linked consoles see the message unchanged. The message is capped to what the game's buffer takes, the code never cut. A database error means no code, never a failed login (wfc-common v0.5.0).
+
 ## v0.1.3 - 2026-11-03
 
 - Internal `/internal/` polls are counted and summarised once a minute instead of logged per call (wfc-common v0.3.1). Parse-error and peer-message log lines now record byte counts instead of the raw message; gamestats no longer logs set-data values.
