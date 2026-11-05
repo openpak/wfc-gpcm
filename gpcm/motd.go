@@ -2,12 +2,12 @@ package gpcm
 
 import (
 	"context"
-	"time"
 	"os"
+	"time"
 	"unicode/utf16"
 
-	"openpak/wfc-common/mkwboard"
 	"openpak/wfc-common/logging"
+	"openpak/wfc-common/mkwboard"
 )
 
 var motdFilepath = "./motd.txt"

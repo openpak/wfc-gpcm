@@ -417,19 +417,32 @@ func waitForBackend() {
 	}
 }
 
-// frontendListen listens on the specified port and forwards each packet to the backend
+// frontendListen listens on the specified port and forwards each packet to the backend. With
+// WFC_PROXY_LISTEN set it also listens there for connections relayed by wfc-front, each
+// starting with a PROXY v2 header that carries the player's real address (prds#149).
 func frontendListen(server serverInfo) {
 	address := *config.GameSpyAddress + ":" + strconv.Itoa(server.port)
+	if proxy := os.Getenv("WFC_PROXY_LISTEN"); proxy != "" && server.protocol == "tcp" {
+		go frontendAccept(server, proxy, true)
+	}
+	frontendAccept(server, address, false)
+}
+
+// connCount numbers connections across both listeners. It only goes up; wrapping does not matter.
+var connCount atomic.Uint64
+
+func frontendAccept(server serverInfo, address string, proxied bool) {
 	l, err := net.Listen(server.protocol, address)
 	if err != nil {
 		logging.Error("FRONTEND", "Failed to listen on", aurora.BrightCyan(address))
 		return
 	}
-
-	logging.Notice("FRONTEND", "Listening on", aurora.BrightCyan(address), "for", aurora.BrightCyan(server.rpcName))
-
-	// Increment by 1 for each connection, never decrement. Unlikely to overflow but it doesn't matter if it does.
-	count := uint64(0)
+	if proxied {
+		l = common.ProxyListener{Listener: l}
+		logging.Notice("FRONTEND", "Listening on", aurora.BrightCyan(address), "for", aurora.BrightCyan(server.rpcName), "(relayed, PROXY v2)")
+	} else {
+		logging.Notice("FRONTEND", "Listening on", aurora.BrightCyan(address), "for", aurora.BrightCyan(server.rpcName))
+	}
 
 	for {
 		conn, err := l.Accept()
@@ -438,16 +451,13 @@ func frontendListen(server serverInfo) {
 			continue
 		}
 
-		if server.protocol == "tcp" {
-			err := conn.(*net.TCPConn).SetKeepAlive(true)
-			if err != nil {
+		if ka, ok := conn.(interface{ SetKeepAlive(bool) error }); ok {
+			if err := ka.SetKeepAlive(true); err != nil {
 				logging.Warn("FRONTEND", "Unable to set keepalive", err.Error())
 			}
 		}
 
-		count++
-
-		go handleConnection(server, conn, count)
+		go handleConnection(server, conn, connCount.Add(1))
 	}
 }
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.5.0 - 2026-11-05
+
+- WFC_PROXY_LISTEN: a second, loopback-only listener for connections relayed by wfc-front with a PROXY v2 header, so GPCM (and the QR2 login it publishes) sees players' real public addresses (prds#149). The direct port is unchanged. Vendors wfc-common v0.9.0.
+
 ## v0.4.1 - 2026-11-05
 
 - Mario Kart Wii message of the day says "Welcome to OpenPak Wi-Fi Connection!" (was WiiLink's), seen on the first Wii sign-in on prod (prds#144).
