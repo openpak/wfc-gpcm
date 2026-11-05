@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.3.0 - 2026-11-05
+
+- Vendors wfc-common v0.7.0 (prds#131): users.email and users.unique_nick are derived and dropped at start-up, last addresses are blanked after 90 days. Deploy after wfc-api.
+
 ## v0.2.0 - 2026-11-04
 
 - Mario Kart Wii: an unlinked console is shown a pairing code in the Wi-Fi menu message of the day (`wl:motd`), to enter at openpak.org/link. Linked consoles see the message unchanged. The message is capped to what the game's buffer takes, the code never cut. A database error means no code, never a failed login (wfc-common v0.5.0).
