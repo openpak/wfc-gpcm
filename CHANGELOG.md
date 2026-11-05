@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.4.1 - 2026-11-05
+
+- Mario Kart Wii message of the day says "Welcome to OpenPak Wi-Fi Connection!" (was WiiLink's), seen on the first Wii sign-in on prod (prds#144).
+
 ## v0.4.0 - 2026-11-05
 
 - Link-first (prds#139), behind `WFC_LINK_FIRST=1`: an unlinked console is refused at login before a game profile is made, with its pairing code. Mario Kart Wii shows text with the code and link number (22100); other Wii titles show the 6-digit link number as the error code; the DS gets GP err `WFC_LINK_DS_ERR` (0 = the generic login error). A banned console is told so and never shown a code. A Wii on the DNS-exploit path logs in flagged unlinked (no address kept, no friends/status/profile), gets the payload, and is refused at `exlogin`.
