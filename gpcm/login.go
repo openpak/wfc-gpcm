@@ -1,6 +1,7 @@
 package gpcm
 
 import (
+	"context"
 	"crypto/md5"
 	"crypto/sha1"
 	"encoding/binary"
@@ -11,6 +12,7 @@ import (
 	"openpak/wfc-common/database"
 	"openpak/wfc-common/logging"
 	qr2 "openpak/wfc-common/qr2client"
+	"openpak/wfc-common/wfcapi"
 	"strconv"
 	"strings"
 	"time"
@@ -297,6 +299,16 @@ func (g *GameSpySession) login(command common.GameSpyCommand) {
 
 	proof := generateProof(g.Challenge, nasChallenge, command.OtherValues["authtoken"], command.OtherValues["challenge"])
 
+	// Link-first: an unlinked console stops here and is shown its pairing code. A Wii on the
+	// DNS-exploit path has no payload yet to show it, so it goes on, flagged, and is refused
+	// at exlogin.
+	allowUnlinked := g.UnitCode == UnitCodeWii && !deviceAuth && g.NeedsExploit
+	proceed, unlinked := g.linkGate(authTokenObj.UserID, common.NullTerminatedString(authTokenObj.GsbrCode[:]), deviceId, allowUnlinked)
+	if !proceed {
+		return
+	}
+	g.Unlinked = unlinked
+
 	cmdProfileId := uint32(0)
 	if cmdProfileIdStr, exists := command.OtherValues["profileid"]; exists {
 		cmdProfileId2, err := strconv.ParseUint(cmdProfileIdStr, 10, 32)
@@ -372,7 +384,10 @@ func (g *GameSpySession) login(command common.GameSpyCommand) {
 
 	// Notify QR2 of the login
 	publish(g)
-	if err := qr2.Login(g.User.ProfileId, g.GameCode, g.InGameName, g.ConsoleFriendCode, g.User.GsbrCode[:4], g.RemoteAddr, g.NeedsExploit, g.DeviceAuthenticated, g.User.Restricted, g.Generation, g.PublishedRevision, g.User.UserId); err != nil {
+	if err := qr2.LoginAs(wfcapi.Login{ProfileID: g.User.ProfileId, UserID: g.User.UserId, Generation: g.Generation, Revision: g.PublishedRevision,
+		GameCode: g.GameCode, InGameName: g.InGameName, ConsoleFriendCode: g.ConsoleFriendCode, FriendKeyGame: g.User.GsbrCode[:4],
+		GPPublicIP: g.RemoteAddr, NeedsExploit: g.NeedsExploit, DeviceAuthenticated: g.DeviceAuthenticated, Restricted: g.User.Restricted,
+		Unlinked: g.Unlinked}); err != nil {
 		unpublish(g.User.ProfileId, g.Generation)
 		mutex.Lock()
 		if sessions[g.User.ProfileId] == g {
@@ -406,8 +421,9 @@ func (g *GameSpySession) login(command common.GameSpyCommand) {
 			logging.Info(g.ModuleName, err)
 			motd = ""
 		}
-		// An unlinked console is shown a code to enter at openpak.org/link.
-		motd = MessageWithPairing(motd, g.pairingCode())
+		// A linked console is reminded whose account it plays as (a console someone else
+		// claimed is noticed this way).
+		motd = MessageWithHandle(motd, g.linkedHandle())
 		if motd != "" {
 			motdUTF16 := utf16.Encode([]rune(motd))
 			motdByteArray := common.UTF16ToByteArray(motdUTF16)
@@ -445,6 +461,14 @@ func (g *GameSpySession) exLogin(command common.GameSpyCommand) {
 
 	defaultKey, deviceId := g.verifyExLoginInfo(command, g.AuthToken)
 	if deviceId == 0 {
+		return
+	}
+
+	// The payload is in now, so an unlinked console can be shown its code.
+	if g.Unlinked {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		g.refuseWithCode(ctx, g.User.UserId, g.User.GsbrCode)
 		return
 	}
 
@@ -529,10 +553,13 @@ func (g *GameSpySession) performLoginWithDatabase(userId uint64, gsbrCode string
 		return false
 	}
 
-	// Get IP address without port
+	// Get IP address without port. None is kept for an unlinked console (link-first).
 	ipAddress := g.RemoteAddr
 	if strings.Contains(ipAddress, ":") {
 		ipAddress = ipAddress[:strings.Index(ipAddress, ":")]
+	}
+	if g.Unlinked {
+		ipAddress = ""
 	}
 
 	user, err := db.LoginUserToGPCM(userId, gsbrCode, profileId, defaultKey, deviceId, ipAddress, g.InGameName, deviceAuth)

@@ -10,13 +10,15 @@ package gpcm
 //   - every 30 s for every logged-in session, and a session whose account is now banned is
 //     kicked with the "You have been banned" message (22002), the path WiiLink's own ban uses.
 //
-// A console nobody has linked is not an OpenPak account and keeps playing. When the lookup
+// A console nobody has linked is not an OpenPak account; with link-first on (linkgate.go) it
+// never gets this far. When the lookup
 // cannot be answered a login is let through (the next sweep catches a banned one): refusing
 // would lock every unlinked Wii and DS out whenever the website is down.
 //
 // Configured by WEBSITE_INTERNAL_URL and WEBSITE_INTERNAL_KEY; with either unset the gate is off.
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -76,7 +78,7 @@ func (b *banGate) check(userID uint64) (banVerdict, error) {
 	}
 	b.mu.Unlock()
 
-	q := url.Values{"namespace": {"wfc"}, "subject": {strconv.FormatUint(userID, 10)}}
+	q := url.Values{"namespace": {"wfc"}, "subject": {banSubject(userID)}}
 	req, err := http.NewRequest(http.MethodGet, b.url+"/internal/bans?"+q.Encode(), nil)
 	if err != nil {
 		return banVerdict{}, err
@@ -176,4 +178,18 @@ func sweepBans() {
 			KickPlayer(p.profileID, "banned")
 		}
 	}
+}
+
+// banSubject is the core subject the console is linked under: the cached "<user_id>.<n>" of a
+// link-first link, else the bare user id of an older link.
+func banSubject(userID uint64) string {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if !db.Ready() {
+		return strconv.FormatUint(userID, 10)
+	}
+	if l, ok, err := db.LinkedConsoleOf(ctx, userID); err == nil && ok && l.Subject != "" {
+		return l.Subject
+	}
+	return strconv.FormatUint(userID, 10)
 }

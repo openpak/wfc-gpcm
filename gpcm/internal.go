@@ -12,7 +12,7 @@ var published = map[uint32]wfcapi.Session{}
 
 func publish(g *GameSpySession) {
 	g.PublishedRevision = time.Now().UnixNano()
-	v := wfcapi.Session{Login: wfcapi.Login{ProfileID: g.User.ProfileId, UserID: g.User.UserId, Generation: g.Generation, Revision: g.PublishedRevision, GameCode: g.GameCode, InGameName: g.InGameName, ConsoleFriendCode: g.ConsoleFriendCode, FriendKeyGame: g.User.GsbrCode[:4], GPPublicIP: g.RemoteAddr, NeedsExploit: g.NeedsExploit, DeviceAuthenticated: g.DeviceAuthenticated, Restricted: g.User.Restricted}, SessionKey: g.SessionKey, GameName: g.GameName, UniqueNick: "000000000" + g.User.GsbrCode[:4] + "0000000"}
+	v := wfcapi.Session{Login: wfcapi.Login{ProfileID: g.User.ProfileId, UserID: g.User.UserId, Generation: g.Generation, Revision: g.PublishedRevision, GameCode: g.GameCode, InGameName: g.InGameName, ConsoleFriendCode: g.ConsoleFriendCode, FriendKeyGame: g.User.GsbrCode[:4], GPPublicIP: g.RemoteAddr, NeedsExploit: g.NeedsExploit, DeviceAuthenticated: g.DeviceAuthenticated, Restricted: g.User.Restricted, Unlinked: g.Unlinked}, SessionKey: g.SessionKey, GameName: g.GameName, UniqueNick: "000000000" + g.User.GsbrCode[:4] + "0000000"}
 	publishedMu.Lock()
 	published[g.User.ProfileId] = v
 	publishedMu.Unlock()
@@ -55,6 +55,14 @@ func RegisterInternal(mux *http.ServeMux) {
 			if s, ok := sessions[in.ProfileID]; ok && s.Generation == in.Generation {
 				kickPlayer(in.ProfileID, in.Reason)
 			}
+			mutex.Unlock()
+		case "kick-user":
+			if in.UserID == 0 {
+				http.Error(w, "missing user", 400)
+				return
+			}
+			mutex.Lock()
+			out.Kicked = kickUser(in.UserID, in.Reason)
 			mutex.Unlock()
 		case "kick":
 			if in.Custom == "restricted" {

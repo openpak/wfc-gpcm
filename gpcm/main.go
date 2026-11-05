@@ -33,6 +33,8 @@ type GameSpySession struct {
 	SessionKey          int32
 
 	LoginInfoSet      bool
+	// Unlinked: a Wii on the DNS-exploit path logged in only to receive the payload (link-first).
+	Unlinked bool
 	GameName          string
 	GameCode          string
 	Region            byte
@@ -86,6 +88,7 @@ func StartServer(reload bool) {
 	allowDefaultDolphinKeys = config.AllowDefaultDolphinKeys
 
 	go watchBans() // OpenPak account bans; a no-op without WEBSITE_INTERNAL_URL/KEY
+	startLinkGate(config)
 
 	if reload {
 		err := loadState()
@@ -262,6 +265,15 @@ func HandlePacket(index uint64, data []byte) {
 		httplog.Command(ServerName, commands[0].Command, "denied", time.Now())
 		logging.Error(session.ModuleName, "Attempt to run command before login:", aurora.Cyan(commands[0]))
 		session.replyError(ErrNotLoggedIn)
+		return
+	}
+
+	if session.Unlinked {
+		// An unlinked exploit session gets nothing but its exlogin refusal: no friends, status,
+		// profile or messages.
+		for _, c := range commands {
+			httplog.Command(ServerName, c.Command, "denied", time.Now())
+		}
 		return
 	}
 

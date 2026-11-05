@@ -6,7 +6,7 @@ import (
 	"os"
 	"unicode/utf16"
 
-	"openpak/wfc-common/database"
+	"openpak/wfc-common/mkwboard"
 	"openpak/wfc-common/logging"
 )
 
@@ -26,16 +26,15 @@ func GetMessageOfTheDay() (string, error) {
 // bytes, 192 units; a little under that is kept as margin.
 const motdLimit = 180
 
-// MessageWithPairing is the message of the day with the console's pairing code appended: the
-// only text an unlinked Mario Kart Wii player is guaranteed to read, which is how the code
-// reaches them. An empty code (console already linked, or the database was unreachable)
-// leaves the message alone. The code lines come first-class: if the whole thing would not fit
-// the game's buffer, the base message is cut, never the code.
-func MessageWithPairing(base, code string) string {
-	if code == "" {
+// MessageWithHandle is the message of the day with "OpenPak: @handle" appended for a linked
+// console, so a player notices if someone else claimed their console. An empty handle leaves the
+// message alone. The handle line is kept whole: if both would not fit the game's buffer, the
+// base message is cut.
+func MessageWithHandle(base, handle string) string {
+	if handle == "" {
 		return base
 	}
-	tail := "\n\nLink this Wii at openpak.org/link\nCode: " + database.FormatPairingCode(code)
+	tail := "\n\nOpenPak: @" + handle
 	if base == "" {
 		tail = tail[2:]
 	}
@@ -50,15 +49,23 @@ func MessageWithPairing(base, code string) string {
 	return string(utf16.Decode(units)) + tail
 }
 
-// pairingCode is the code an unlinked console should be shown, or "" when it is linked or the
-// database does not answer in time: a login never waits on, or fails because of, linking.
-func (g *GameSpySession) pairingCode() string {
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-	code, err := db.IssuePairingCode(ctx, g.User.UserId)
-	if err != nil {
-		logging.Warn(g.ModuleName, "pairing code:", err)
+// linkedHandle is the handle of the account this console is linked to, or "" (not linked, no
+// core, or no answer in time: a login never waits on it).
+func (g *GameSpySession) linkedHandle() string {
+	links, ok := linkCore.(*mkwboard.CoreLinks)
+	if !ok || links == nil {
 		return ""
 	}
-	return code
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	l, linked, err := db.LinkedConsoleOf(ctx, g.User.UserId)
+	if err != nil || !linked {
+		return ""
+	}
+	h, err := links.Handle(ctx, l.AccountID)
+	if err != nil {
+		logging.Warn(g.ModuleName, "handle:", err)
+		return ""
+	}
+	return h
 }

@@ -128,12 +128,12 @@ func (g *GameSpySession) replyError(gpErr GPError) {
 	if !g.LoginInfoSet {
 		msg := gpErr.GetMessage()
 		// logging.Info(g.ModuleName, "Sending error message:", msg)
-		err := common.SendPacket(ServerName, g.ConnIndex, []byte(msg))
+		err := sendPacket(ServerName, g.ConnIndex, []byte(msg))
 		if gpErr.Fatal || err != nil {
 			if err != nil {
 				logging.Error("GPCM", "Failed to send packet:", err)
 			}
-			common.ShouldNotError(common.CloseConnection(ServerName, g.ConnIndex))
+			common.ShouldNotError(closeConnection(ServerName, g.ConnIndex))
 		}
 		logging.Event("gpcm_returned_error", map[string]any{
 			"profile_id":   g.User.ProfileId,
@@ -151,12 +151,12 @@ func (g *GameSpySession) replyError(gpErr GPError) {
 
 	msg, wwfcErrorCode := gpErr.GetMessageTranslate(g.GameName, g.Region, g.Language, g.ConsoleFriendCode, deviceId)
 	// logging.Info(g.ModuleName, "Sending error message:", msg)
-	err := common.SendPacket(ServerName, g.ConnIndex, []byte(msg))
+	err := sendPacket(ServerName, g.ConnIndex, []byte(msg))
 	if gpErr.Fatal || err != nil {
 		if err != nil {
 			logging.Error("GPCM", "Failed to send packet:", err)
 		}
-		common.ShouldNotError(common.CloseConnection(ServerName, g.ConnIndex))
+		common.ShouldNotError(closeConnection(ServerName, g.ConnIndex))
 	}
 
 	logging.Event("gpcm_returned_error", map[string]any{
@@ -167,3 +167,9 @@ func (g *GameSpySession) replyError(gpErr GPError) {
 		"wiilink_error_code": wwfcErrorCode,
 	})
 }
+
+// sendPacket and closeConnection reach the frontend; tests swap them to read replies.
+var (
+	sendPacket      = common.SendPacket
+	closeConnection = common.CloseConnection
+)
